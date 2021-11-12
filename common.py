@@ -1,6 +1,8 @@
 # File with common functions
 import os
 
+suportted_methods = ["deposito", "recuperacao"]
+
 
 def create_folder(type, folder_name):
     folder = os.path.join(type, folder_name)
@@ -13,5 +15,12 @@ def save_file(file_name):
     return
 
 # TODO: Criar método para pegar arquivo buscado pelo cliente
+
+
 def get_file(file_name):
     return
+
+
+def validate_params(params):
+    if params[0] not in suportted_methods:
+        raise ValueError("Método solicitado inválido")

@@ -12,16 +12,24 @@ while True:
     parameters = clientSocket.recv(1024).decode()
     parameters = parameters.splitlines()
 
+    try:
+        common.validate_params(parameters)
+    except ValueError as error:
+        print(error)
+        clientSocket.send(bytes(str(error), "utf-8"))
+        clientSocket.close()
+        continue
     # Check parameters
     if(len(parameters) < 2):
         clientSocket.send(bytes("Parametros inválidos", "utf-8"))
         clientSocket.close()
 
     print(parameters)
-    if parameters[0] == "salvar":
-        common.create_folder("server", parameters[1])
-        print(f"Pasta criada : {parameters[1]}")
-    
-    if parameters[0] == "":
+    if parameters[0] == "deposito":
+        for index in range(int(parameters[1])):
+            common.create_folder("server", str(index))
+        print(f"Pastas criadas : {(parameters[1])}")
+
+    if parameters[0] == "recuperacao":
         print("uepa")
     clientSocket.close()
