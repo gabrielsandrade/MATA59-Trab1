@@ -2,6 +2,7 @@
 import os
 
 suportted_methods = ["deposito", "recuperacao"]
+server_port = 1233
 
 
 def create_folder(type, folder_name):
@@ -14,13 +15,12 @@ def create_folder(type, folder_name):
 def save_file(file_name):
     return
 
+
 # TODO: Criar método para pegar arquivo buscado pelo cliente
-
-
 def get_file(file_name):
     return
 
 
 def validate_params(params):
-    if params[0] not in suportted_methods:
+    if params['operacao'] not in suportted_methods:
         raise ValueError("Método solicitado inválido")

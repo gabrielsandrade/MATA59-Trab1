@@ -1,15 +1,20 @@
 import socket
+import common
+import pickle
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect((socket.gethostname(), 1235))
 
 operation = "deposito"
-tolerance = 5
+tolerance = 10
 file = ""
 file_name = "foto"
 
-s.send(f"{operation}\n{tolerance}\n{file_name}".encode())
-print(
-    f"Mensagem enviada : \n-----------\n{operation}\n{tolerance}\n{file_name}\n-----------\n")
+data = {'operacao': operation, 'tolerancia': tolerance, 'file_name': file_name}
+data = pickle.dumps(data)
+print(pickle.loads(data))
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect((socket.gethostname(), common.server_port))
+
+s.send(data)
 msg = s.recv(1024)  # increase for large files
 print(msg.decode("utf-8"))
