@@ -1,6 +1,7 @@
 import socket
 import common
 import pickle
+import os
 
 BUFFER_SIZE = 1000
 
@@ -8,7 +9,9 @@ BUFFER_SIZE = 1000
 def handle_deposito(data):
     for index in range(int(data_rcvd['tolerancia'])):
         common.create_folder("server", str(index))
-    print(f"Pastas criadas : {data_rcvd['tolerancia']}")
+        file_name = os.path.join("server", str(index), data['file_name'])
+        common.save_file(file_name, data['file'])
+        print(f'cópia {index} salva')
 
 
 def handle_recuperacao(data):
@@ -32,9 +35,10 @@ while True:
             break
     try:
         data_rcvd = pickle.loads(full_msg)
-        print(data_rcvd)
         common.validate_params(data_rcvd)
-        print(data_rcvd['operacao'])
+        print(f"operacao : {data_rcvd['operacao']}")
+        print(f"tolerancia : {data_rcvd['tolerancia']}")
+        print(f"file_name : {data_rcvd['file_name']}")
     except ValueError as error:
         print(error)
         clientSocket.send(bytes(str(error), "utf-8"))

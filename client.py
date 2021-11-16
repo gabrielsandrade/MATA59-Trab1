@@ -4,13 +4,13 @@ import pickle
 
 
 operation = "deposito"
-tolerance = 10
+tolerance = 2
 file = ""
-file_name = "foto"
-
+file_name = "foto.png"
 data = {'operacao': operation, 'tolerancia': tolerance, 'file_name': file_name}
+file = common.get_file(file_name)
+data['file'] = file
 data = pickle.dumps(data)
-print(pickle.loads(data))
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((socket.gethostname(), common.server_port))

@@ -2,7 +2,7 @@
 import os
 
 suportted_methods = ["deposito", "recuperacao"]
-server_port = 1233
+server_port = 1235
 
 
 def create_folder(type, folder_name):
@@ -11,14 +11,15 @@ def create_folder(type, folder_name):
         os.makedirs(folder)
 
 
-# TODO: Criar método para salvar arquivo enviado pelo cliente
-def save_file(file_name):
+def save_file(file_name, file):
+    with open(file_name, 'wb') as f:
+        f.write(file)
     return
 
 
-# TODO: Criar método para pegar arquivo buscado pelo cliente
 def get_file(file_name):
-    return
+    with open(file_name, 'rb') as file:
+        return file.read()
 
 
 def validate_params(params):
