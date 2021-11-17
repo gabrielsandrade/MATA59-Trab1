@@ -2,13 +2,7 @@
 import os
 
 suportted_methods = ["deposito", "recuperacao"]
-server_port = 1235
-
-
-def create_folder(type, folder_name):
-    folder = os.path.join(type, folder_name)
-    if not os.path.exists(folder):
-        os.makedirs(folder)
+MAIN_PORT = 1234
 
 
 def save_file(file_name, file):
