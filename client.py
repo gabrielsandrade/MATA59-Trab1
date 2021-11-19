@@ -4,8 +4,8 @@ import pickle
 
 BUFFER_SIZE = 1024
 
-file_name = "especificacao_do_trabalho.pdf"
-data = {'operacao': 'deposito',
+file_name = "foto.png"
+data = {'operacao': 'operacao',
         'tolerancia': 2,
         'file_name': file_name}
 file = common.get_file(file_name)
