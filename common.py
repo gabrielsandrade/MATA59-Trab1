@@ -2,10 +2,16 @@
 import os
 
 suportted_methods = ["deposito", "recuperacao"]
-MAIN_PORT = 1234
+MAIN_PORT = 1238
 
 
-def save_file(file_name, file):
+def create_folder(folder):
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+
+def save_file(folder, file_name, file):
+    create_folder(folder)
     with open(file_name, 'wb') as f:
         f.write(file)
     return

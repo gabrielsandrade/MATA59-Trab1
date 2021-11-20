@@ -9,9 +9,31 @@ BUFFER_SIZE = 1000
 SERVER_PORTS = [1235, 1236, 1237, 1238, 1239]
 
 
+def delete_file(port, file_name):
+    pass
+
+
+def check_file_in_table(df, file_name):
+    return df[df['file_name'] == file_name]
+
+
+def request_file(s, port, data):
+    new_socket = connect_to_server(port)
+    new_socket.send(pickle.dumps(data))
+    full_msg = b''
+    while True:
+        msg = new_socket.recv(BUFFER_SIZE)
+        full_msg += msg
+        if len(msg) < BUFFER_SIZE:
+            break
+
+    return pickle.loads(full_msg)
+
+
 def connect_to_server(port):
     new_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     new_socket.connect((socket.gethostname(), port))
+    return new_socket
 
 
 def get_file_table():
@@ -22,7 +44,8 @@ def get_file_table():
     return pd.read_csv('tabela.csv')
 
 
-def handle_deposito(data, s, df):
+def handle_deposito(data, s):
+    df = get_file_table()
     # Se a conexão atual é no servidor principal,
     # manda o arquivo para os outros servidores
     if s.getsockname()[1] == common.MAIN_PORT:
@@ -30,34 +53,61 @@ def handle_deposito(data, s, df):
             new_socket = connect_to_server(SERVER_PORTS[index])
             new_socket.send(pickle.dumps(data))
             print(f'cópia {index} salva')
-            file_in_table = df[df['file_name'] == data['file_name']]
+            file_in_table = check_file_in_table(df, data['file_name'])
+
             if not file_in_table.empty:
                 row_index = file_in_table.index.values.astype(int)[0]
                 empty_column = file_in_table.columns[file_in_table.isna(
                 ).any()].tolist()[0]
                 df.loc[row_index, empty_column] = int(SERVER_PORTS[index])
-                print(empty_column)
-                print(df)
+
             else:
                 new_row = [data['file_name'], SERVER_PORTS[index],
                            None, None, None, None]
                 df.loc[len(df)] = new_row
             df.to_csv('tabela.csv', index=False)
-            # TODO: Salvar na tabela em qual porta o arquivo foi salva
 
     # Caso não seja o servidor principal salva o arquivo
     # numa pasta com nome port_{porta_do_servidor}
     else:
-        file_name = os.path.join(
-            "server", f'port_{s.getsockname()[1]}', data['file_name'])
-        common.save_file(file_name, data['file'])
+        folder = os.path.join("server", f'port_{s.getsockname()[1]}')
+        file_name = os.path.join(folder, data['file_name'])
+        common.save_file(folder, file_name, data['file'])
 
 
-def handle_recuperacao(data, s, df):
+def handle_recuperacao(data, s, clientSocket):
+    df = get_file_table()
+    file_in_table = check_file_in_table(df, data['file_name'])
+    if file_in_table.empty:
+        clientSocket.send(bytes('Arquivo não encontrado no servidor', "utf-8"))
+        return
     if s.getsockname()[1] == common.MAIN_PORT:
-        pass
+        # remove as colunas nulas
+        file_in_table = file_in_table.dropna(1)
+        # remove a coluna do nome do arquivo
+        file_in_table = file_in_table.drop(axis=1, columns=['file_name'])
+        # removendo as colunas de cima sobra só as colunas que dizem onde o arquivo tá salvo
+        servers_to_search_file = file_in_table.values[0]
+        for server in servers_to_search_file:
+            try:
+                file = request_file(s, server, data)
+                if 'file' in file:
+                    clientSocket.send(pickle.dumps(file))
+                    return
+            except:
+                pass
+        error = pickle.dumps({'error': 'arquivo não encontrado'})
+        clientSocket.send(error)
     else:
-        print("uepa")
+        try:
+            file_name = os.path.join(
+                'server', f'port_{s.getsockname()[1]}', data['file_name'])
+            file = common.get_file(file_name)
+            clientSocket.send(pickle.dumps({'file': file}))
+        except:
+            print('arquivo não encontrado')
+            clientSocket.send(pickle.dumps(
+                {'error': 'arquivo não encontrado'}))
 
 
 def handle_edicao(data):
@@ -71,8 +121,6 @@ def create_socket(port):
 
 
 def main():
-    df = get_file_table()
-    print(df)
     args = sys.argv[1:]
     if args and args[0] == "main":
         server_port = common.MAIN_PORT
@@ -119,10 +167,10 @@ def main():
             continue
 
         if data_rcvd['operacao'] == "deposito":
-            handle_deposito(data_rcvd, s, df)
-            clientSocket.send(bytes(str('Arquivo salvo !'), 'utf-8'))
+            handle_deposito(data_rcvd, s)
+            clientSocket.send(pickle.dumps({'message': 'Arquivo salvo !'}))
         if data_rcvd['operacao'] == "recuperacao":
-            handle_recuperacao(data_rcvd)
+            handle_recuperacao(data_rcvd, s, clientSocket)
         if data_rcvd['operacao'] == "edicao":
             handle_edicao(data_rcvd)
 
