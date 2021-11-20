@@ -1,8 +1,8 @@
 # File with common functions
 import os
 
-suportted_methods = ["deposito", "recuperacao"]
-MAIN_PORT = 1238
+suportted_methods = ["deposito", "recuperacao", "edicao"]
+MAIN_PORT = 1234
 
 
 def create_folder(folder):

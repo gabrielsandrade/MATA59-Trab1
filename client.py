@@ -6,7 +6,7 @@ import os
 BUFFER_SIZE = 1024
 
 file_name = "especificacao_do_trabalho.pdf"
-data = {'operacao': 'deposito', 'tolerancia': 3, 'file_name': file_name}
+data = {'operacao': 'edicao', 'tolerancia': 3, 'file_name': file_name}
 if data['operacao'] == 'deposito':
     file = common.get_file(file_name)
     data['file'] = file
@@ -24,6 +24,7 @@ while True:
     if len(msg) < BUFFER_SIZE:
         print('Mensagem recebida')
         break
+
 data_rcvd = (pickle.loads(full_msg))
 if 'message' in data_rcvd:
     print(data_rcvd['message'])
@@ -34,4 +35,4 @@ if 'file' in data_rcvd:
     print('arquivo salvo na pasta "client"')
 
 elif 'error' in data_rcvd:
-    print('falha na requisição')
+    print(data_rcvd['error'])

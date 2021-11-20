@@ -36,7 +36,7 @@ def connect_to_server(port):
     return new_socket
 
 
-def get_file_table():
+def get_table():
     if not os.path.exists('tabela.csv'):
         df = pd.DataFrame(columns=['file_name', 'server_1', 'server_2',
                                    'server_3', 'server_4', 'server_5'])
@@ -45,14 +45,20 @@ def get_file_table():
 
 
 def handle_deposito(data, s):
-    df = get_file_table()
     # Se a conexão atual é no servidor principal,
     # manda o arquivo para os outros servidores
     if s.getsockname()[1] == common.MAIN_PORT:
+        df = get_table()
+        file_in_table = check_file_in_table(df, data['file_name'])
+        if not file_in_table.empty:
+            return {'error': 'arquivo já existe no servidor.'}
         for index in range(int(data['tolerancia'])):
+            # SERVER_PORTS = [1235, 1236, 1237, 1238, 1239]
             new_socket = connect_to_server(SERVER_PORTS[index])
             new_socket.send(pickle.dumps(data))
-            print(f'cópia {index} salva')
+
+            print(f'cópia {index + 1} salva')
+            # preenche na tabela onde o arquivo foi salvo
             file_in_table = check_file_in_table(df, data['file_name'])
 
             if not file_in_table.empty:
@@ -65,7 +71,7 @@ def handle_deposito(data, s):
                 new_row = [data['file_name'], SERVER_PORTS[index],
                            None, None, None, None]
                 df.loc[len(df)] = new_row
-            df.to_csv('tabela.csv', index=False)
+        df.to_csv('tabela.csv', index=False)
 
     # Caso não seja o servidor principal salva o arquivo
     # numa pasta com nome port_{porta_do_servidor}
@@ -76,10 +82,11 @@ def handle_deposito(data, s):
 
 
 def handle_recuperacao(data, s, clientSocket):
-    df = get_file_table()
+    df = get_table()
     file_in_table = check_file_in_table(df, data['file_name'])
     if file_in_table.empty:
-        clientSocket.send(bytes('Arquivo não encontrado no servidor', "utf-8"))
+        clientSocket.send(pickle.dumps(
+            {'error': 'Arquivo não encontrado no servidor'}))
         return
     if s.getsockname()[1] == common.MAIN_PORT:
         # remove as colunas nulas
@@ -92,12 +99,10 @@ def handle_recuperacao(data, s, clientSocket):
             try:
                 file = request_file(s, server, data)
                 if 'file' in file:
-                    clientSocket.send(pickle.dumps(file))
-                    return
+                    return file
             except:
                 pass
-        error = pickle.dumps({'error': 'arquivo não encontrado'})
-        clientSocket.send(error)
+        return {'error': 'arquivo não encontrado'}
     else:
         try:
             file_name = os.path.join(
@@ -110,8 +115,36 @@ def handle_recuperacao(data, s, clientSocket):
                 {'error': 'arquivo não encontrado'}))
 
 
-def handle_edicao(data):
-    print("edicao")
+def handle_edicao(data, s):
+    if s.getsockname()[1] == common.MAIN_PORT:
+        # se for o servidor principal :
+        # - checar se o arquivo existe na tabela
+        # - checar se a quantidade de vezes que o arquivo está duplicado no servidor é maior que ou menor que a solicitacao do usuario
+        # - se for maior, devemos mandar mensagem pros servidores deletarem até as quantidades serem iguais
+        # - se a quantidade for menor, pegar o arquivo em algum dos servidores e mandar para outros até as quantidades serem iguais
+
+        df = get_table()
+        file_in_table = check_file_in_table(df, data['file_name'])
+        if file_in_table.empty:
+            print('enviar erro')
+            # enviar erro pro usuario
+            return
+
+        file_in_table = file_in_table.dropna(1)
+        file_in_table = file_in_table.drop(axis=1, columns=['file_name'])
+        servers_to_search_file = file_in_table.values[0]
+
+        if len(servers_to_search_file) == data['tolerancia']:
+            print('cheguei aqui')
+            return
+
+        if len(servers_to_search_file) > data['tolerancia']:
+            print('deletar de alguns servidores')
+            return
+
+        if len(servers_to_search_file) < data['tolerancia']:
+            print('replicar para outros servidores')
+            return
 
 
 def create_socket(port):
@@ -162,17 +195,23 @@ def main():
             print(f"file_name : {data_rcvd['file_name']}")
         except ValueError as error:
             print(error)
-            clientSocket.send(bytes(str(error), "utf-8"))
+            clientSocket.send(pickle.dumps({'error': str(error)}))
             clientSocket.close()
             continue
 
         if data_rcvd['operacao'] == "deposito":
-            handle_deposito(data_rcvd, s)
-            clientSocket.send(pickle.dumps({'message': 'Arquivo salvo !'}))
+            data = handle_deposito(data_rcvd, s)
+            if data['error']:
+                clientSocket.send(pickle.dumps(data))
+            else:
+                clientSocket.send(pickle.dumps({'message': 'Arquivo salvo !'}))
         if data_rcvd['operacao'] == "recuperacao":
-            handle_recuperacao(data_rcvd, s, clientSocket)
+            data = handle_recuperacao(data_rcvd, s, clientSocket)
+            clientSocket.send(pickle.dumps(data))
         if data_rcvd['operacao'] == "edicao":
-            handle_edicao(data_rcvd)
+            handle_edicao(data_rcvd, s)
+            clientSocket.send(pickle.dumps(
+                {'message': 'implementar isso aqui'}))
 
         clientSocket.close()
 
