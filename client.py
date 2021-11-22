@@ -6,7 +6,9 @@ import os
 BUFFER_SIZE = 1024
 
 file_name = "especificacao_do_trabalho.pdf"
-data = {'operacao': 'edicao', 'tolerancia': 3, 'file_name': file_name}
+data = {'operacao': 'edicao',
+        'tolerancia': 1,
+        'file_name': file_name}
 if data['operacao'] == 'deposito':
     file = common.get_file(file_name)
     data['file'] = file
