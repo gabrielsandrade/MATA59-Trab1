@@ -29,7 +29,7 @@ def check_file_in_table(df, file_name):
 
 
 def file_adresses(df):
-    df.dropna(1)
+    df.dropna(axis=1)
     servers_to_search_file = df.drop(
         axis=1, columns=['file_name'])
     servers_to_search_file = servers_to_search_file.values[0]
@@ -67,7 +67,7 @@ def handle_deposito(data, s):
     if s.getsockname()[1] == common.MAIN_PORT:
         df = get_table()
         file_in_table = check_file_in_table(df, data['file_name'])
-        file_in_table = file_in_table.dropna(1)
+        file_in_table = file_in_table.dropna(axis=1)
         file_in_table = file_in_table.drop(axis=1, columns=['file_name'])
         try:
             servers_to_search_file = file_in_table.values[0]
@@ -87,7 +87,7 @@ def handle_deposito(data, s):
                 index += 1
             except:
                 index += 1
-                print(index)
+
                 if (index > len(servers_to_save_file)):
                     return {'error': 'falha na comunicação entre os servidores'}
                 continue
@@ -121,7 +121,7 @@ def handle_recuperacao(data, s):
     if file_in_table.empty:
         return {'error': 'Arquivo não encontrado no servidor'}
     if s.getsockname()[1] == common.MAIN_PORT:
-        file_in_table = file_in_table.dropna(1)
+        file_in_table = file_in_table.dropna(axis=1)
         file_in_table = file_in_table.drop(axis=1, columns=['file_name'])
         servers_to_search_file = file_in_table.values[0]
         for server in servers_to_search_file:
@@ -150,7 +150,7 @@ def handle_edicao(data, s):
         if file_in_table.empty:
             return {'error': 'arquivo não encontrado'}
 
-        file_in_table = file_in_table.dropna(1)
+        file_in_table = file_in_table.dropna(axis=1)
         file_in_table = file_in_table.drop(axis=1, columns=['file_name'])
         servers_to_search_file = file_in_table.values[0]
 
